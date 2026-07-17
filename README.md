@@ -26,7 +26,7 @@ decision-based attack spends its queries — the label is almost a fair coin. Tw
 consequences drive the whole design:
 
 1. **You cannot resolve the sign at the boundary at any finite budget.** The shot budget
-   instead sets a *boundary-localization resolution* `τ(S) = z_δ·sqrt((1−f²)/S)`. The
+   instead sets a *boundary-localization resolution* `τ(S) = z_δ · sqrt((1−f²)/S)`. The
    calibrated attack bisects only to that resolution and stops conservatively inside it
    (**M1**). A naive port that ignores this suffers a **noise-induced inward bias**: one
    false-positive "adversarial" reading collapses the binary search toward the original
@@ -67,10 +67,10 @@ hlq/                        the library
   metrics.py                verification + the plan's statistics
   concentration.py          RQ5 guardrail (var[f], above-chance, trivially-robust flag)
   analysis.py               budget curves, interior-optimum test, model validation
-  runner.py                 one experiment cell = model × defense × attack × seed
+  runner.py                 one experiment cell = model x defense x attack x seed
 experiments/
-  run_sanity.py             T1–T6
-  driver.py                 composes cells into RQ1–RQ5 + ablations
+  run_sanity.py             T1-T6
+  driver.py                 composes cells into RQ1-RQ5 + ablations
   make_figures.py           research figures from the JSON
   make_notebook.py          generates the self-contained notebook from these sources
 notebooks/                  the generated Kaggle/Colab notebook
@@ -102,27 +102,29 @@ models are trained once and reused across every attack, defense and RQ.
 
 ### Kaggle
 
-Open `notebooks/hard_label_quantum_attacks.ipynb`, **enable Internet** (for the real
-MNIST download; the loader also falls back to keras or an attached dataset), and run top
-to bottom. Use a **CPU** session: these circuits are tiny and the bottleneck is the number
-of sequential circuit evaluations, so a GPU does not help.
+Open `notebooks/hard_label_quantum_attacks.ipynb`, use a **CPU** session and **enable
+Internet** (for the real MNIST download; the loader also falls back to keras or an
+attached dataset), then run top to bottom. A GPU does not help — these circuits are tiny
+and the bottleneck is the number of sequential circuit evaluations. The notebook defaults
+to the two heaviest blocks (RQ4 defenses, RQ5 concentration); set `RQS = ALL_RQS` to run
+the whole study there.
 
 ---
 
-## The sanity gate (plan §7)
+## The sanity gate (plan Sec. 7)
 
-Code is not trusted until **T1–T4** pass.
+Code is not trusted until **T1-T4** pass. All six pass.
 
 | ID | Test | Status |
 |----|------|--------|
 | **T1** | `p_flip` closed form vs Monte-Carlo, and vs PennyLane's own shot sampling | PASS |
-| **T2** | infinite-shot limit → deterministic HopSkipJump (paired per-image) | PASS |
-| **T3** | attack vs an analytically known boundary | PASS |
+| **T2** | infinite-shot limit -> deterministic HopSkipJump (paired per-image) | PASS |
+| **T3** | attack vs an analytically known boundary (recovered distance error 0.09%) | PASS |
 | **T4** | already-adversarial input returned unchanged | PASS |
 | **T5** | budget monotonicity (paired, common success set) | PASS |
 | **T6** | concentration guardrail fires on a concentrated model, not a trained one | PASS |
 
-Two of these needed **paired per-image** statistics: the perturbation varies ~10× across
+Two of these needed **paired per-image** statistics: the perturbation varies ~10x across
 inputs and the set of images that succeed changes with the budget, so comparing medians
 of different small subsets measures image variance and selection bias rather than the
 effect under test.
@@ -131,12 +133,13 @@ effect under test.
 
 ## Headline results (real MNIST 3-vs-5, n=8, L=5, angle encoding)
 
-40 attacked test images per cell × 3 seeds; VQC test accuracy 0.884 / 0.913 / 0.903.
-Success is **verified against the exact model**.
+40 attacked test images per cell x 3 seeds; VQC test accuracy 0.884 / 0.913 / 0.903.
+Success is **verified against the exact model**. (These are from the `medium` preset; the
+`full` preset scales to 250 images/cell x 8 seeds.)
 
 **RQ1 — feasibility, at T = 60 000 shots**
 
-| method | verified success | median ℓ₂ | median queries |
+| method | verified success | median l2 | median queries |
 |---|---|---|---|
 | **Calibrated HSJA (ours)** | **0.59 ± 0.07** | 0.840 | 3494 |
 | PopSkipJump (constant noise) | 0.41 ± 0.01 | 0.919 | 616 |
@@ -159,12 +162,21 @@ stochastic Born-rule oracle — not the attack — is what costs.
 
 Two effects worth naming:
 
-* **The naive port gets *worse* as the budget grows** (0.36 → 0.14 → 0.07). That is the
+* **The naive port gets *worse* as the budget grows** (0.36 -> 0.14 -> 0.07). That is the
   inward-bias signature: more iterations means more chances for a false-positive
   "adversarial" reading, and the binary search never recovers from one.
-* **The calibrated attack trades success for precision** (success 0.70 → 0.58 while its
-  perturbation tightens 0.952 → 0.756). More budget buys finer boundary resolution `τ`,
+* **The calibrated attack trades success for precision** (success 0.70 -> 0.58 while its
+  perturbation tightens 0.952 -> 0.756). More budget buys finer boundary resolution `τ`,
   so the returned point sits closer to the true boundary and is inherently more marginal.
+
+**RQ2 — query/shot economics.** A weak interior optimum appears in the probe-shot
+allocation (perturbation dips at `S_probe ≈ 2`) and a clearer one in the M1/M2 split
+(best around 0.75 of the per-iteration budget to the normal estimate), partially
+supporting H2. **Ablations:** re-uploading is the most attackable encoding (0.74 success)
+and amplitude the least (0.24); MNIST 0-vs-1 (near-separable, clean acc 0.995) is easier
+to attack than 3-vs-5 or Fashion-MNIST.
+
+---
 
 ## Design notes worth knowing
 
@@ -184,5 +196,9 @@ Two effects worth naming:
 * **Figures**: validated colorblind-safe categorical palette used in fixed order and
   always with a second encoding (marker + linestyle); single-hue sequential ramps for
   magnitude; **never** a dual y-axis; error bars are s.d. over seeds.
-#   H a r d - L a b e l - A d v e r s a r i a l - A t t a c k s - o n - Q u a n t u m - C l a s s i f i e r s  
- 
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
