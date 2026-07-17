@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# Local caches — regenerated on demand (downloaded data, trained VQC weights),
+# not versioned. Removing these keeps the repo small and reproducible from code.
+data_cache/
+models_cache/
+
+# Scratch / logs
+scratch/
+*.log
