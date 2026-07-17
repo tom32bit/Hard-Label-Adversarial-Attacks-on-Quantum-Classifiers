@@ -1,0 +1,21 @@
+{
+  "preset": "medium",
+  "params": {
+    "n_images": 40,
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "iterations": 15,
+    "budget": 60000
+  },
+  "defaults": {
+    "n_qubits": 8,
+    "n_layers": 5,
+    "encoding": "angle",
+    "observable": "local_z",
+    "dataset": "mnist_3v5"
+  },
+  "jobs": 4
+}
