@@ -1,0 +1,188 @@
+# Hard-Label Adversarial Attacks on Quantum Classifiers
+
+Implementation of the research plan in
+[`hard_label_quantum_attacks_research_plan.md`](hard_label_quantum_attacks_research_plan.md):
+a **shot-budget-aware, Born-rule-calibrated decision-based (hard-label) attack** for
+variational quantum classifiers, its baselines, the first gradient-free evaluation of
+two published quantum defenses, and a concentration-vs-robustness guardrail.
+
+Target venue: *Quantum Machine Intelligence*. Classical simulation, 4–12 qubits,
+PennyLane + PyTorch. **No GPU or quantum hardware required.**
+
+---
+
+## The core idea
+
+A deployed quantum classifier returns a *measured label*, not a gradient. With a finite
+shot budget `S` that label is a Bernoulli sample whose flip probability is fixed by the
+Born-rule margin:
+
+```
+p_flip(x, S) ≈ Φ( − m(x) · sqrt( S / (1 − f_θ(x)²) ) ),      m(x) = |f_θ(x)|
+```
+
+So the oracle is **natively stochastic**, and near the boundary — exactly where a
+decision-based attack spends its queries — the label is almost a fair coin. Two
+consequences drive the whole design:
+
+1. **You cannot resolve the sign at the boundary at any finite budget.** The shot budget
+   instead sets a *boundary-localization resolution* `τ(S) = z_δ·sqrt((1−f²)/S)`. The
+   calibrated attack bisects only to that resolution and stops conservatively inside it
+   (**M1**). A naive port that ignores this suffers a **noise-induced inward bias**: one
+   false-positive "adversarial" reading collapses the binary search toward the original
+   point and never recovers, so it returns examples that are *not actually adversarial*.
+2. **Shots are a controllable knob**, so the attacker chooses its own oracle noise and
+   trades queries against shots under a fixed total budget `T = Q × S` (**M2**).
+
+## Results are always *verified*
+
+A hard-label attacker only sees noisy labels, so it can believe it crossed the boundary
+when it did not. Every returned adversarial is therefore re-checked against the exact
+(infinite-shot) model, and a run counts as a success **only if the returned point is
+truly adversarial**. This single choice is what separates the methods.
+
+---
+
+## Layout
+
+```
+hlq/                        the library
+  config.py                 typed configs + presets (JSON round-trippable)
+  data.py                   REAL MNIST / Fashion-MNIST binary pairs (full scope)
+                            + the synthetic known-boundary control (T3 only)
+  classifier.py             the VQC: encoding / observable / ansatz switches
+  classical.py              parameter-matched classical NN (the classical anchor)
+  oracle.py                 exact-Binomial stochastic oracle, Born p_flip, shot controller
+  budget.py                 query/shot economics: the (B, S_probe) objective (RQ2)
+  attacks/
+    base.py                 the ONE HopSkipJump skeleton; subclasses override policy only
+    hsja_quantum.py         calibrated M1+M2  (ours)
+    hsja_fixed.py           naive fixed-shot port (and the deterministic anchor)
+    popskipjump.py          constant-flip-rate baseline
+    pgd_whitebox.py         white-box reference (strongest attacker)
+    transfer.py             classical-surrogate transfer
+  defenses/
+    noise.py                depolarizing defense (true density-matrix simulation)
+    randomized_encoding.py  fresh random rotations per query
+  metrics.py                verification + the plan's statistics
+  concentration.py          RQ5 guardrail (var[f], above-chance, trivially-robust flag)
+  analysis.py               budget curves, interior-optimum test, model validation
+  runner.py                 one experiment cell = model × defense × attack × seed
+experiments/
+  run_sanity.py             T1–T6
+  driver.py                 composes cells into RQ1–RQ5 + ablations
+  make_figures.py           research figures from the JSON
+  make_notebook.py          generates the self-contained notebook from these sources
+notebooks/                  the generated Kaggle/Colab notebook
+results/                    JSON outputs
+figures/                    PNG + vector PDF
+```
+
+**No duplication by construction:** the HSJA geometry exists once in `attacks/base.py`;
+each attack overrides only its shot-budget and side-of-boundary *policy*. Defenses wrap a
+classifier behind the same `decision_function` interface, so the oracle and every attack
+run on them unchanged. The notebook is *generated* from these sources and cannot drift.
+
+---
+
+## Quick start
+
+```bash
+python experiments/run_sanity.py --quick        # the trust gate (minutes)
+python experiments/driver.py --rq rq1 --preset smoke
+python experiments/make_figures.py
+```
+
+Scale with `--preset {smoke,medium,full}` and `--jobs N`. `full` is the
+heavier-statistics scope (250 attacked images/cell, 8 seeds) and is a multi-hour job —
+run it one RQ at a time.
+
+Trained models and dataset features are cached (`models_cache/`, `data_cache/`), so
+models are trained once and reused across every attack, defense and RQ.
+
+### Kaggle
+
+Open `notebooks/hard_label_quantum_attacks.ipynb`, **enable Internet** (for the real
+MNIST download; the loader also falls back to keras or an attached dataset), and run top
+to bottom. Use a **CPU** session: these circuits are tiny and the bottleneck is the number
+of sequential circuit evaluations, so a GPU does not help.
+
+---
+
+## The sanity gate (plan §7)
+
+Code is not trusted until **T1–T4** pass.
+
+| ID | Test | Status |
+|----|------|--------|
+| **T1** | `p_flip` closed form vs Monte-Carlo, and vs PennyLane's own shot sampling | PASS |
+| **T2** | infinite-shot limit → deterministic HopSkipJump (paired per-image) | PASS |
+| **T3** | attack vs an analytically known boundary | PASS |
+| **T4** | already-adversarial input returned unchanged | PASS |
+| **T5** | budget monotonicity (paired, common success set) | PASS |
+| **T6** | concentration guardrail fires on a concentrated model, not a trained one | PASS |
+
+Two of these needed **paired per-image** statistics: the perturbation varies ~10× across
+inputs and the set of images that succeed changes with the budget, so comparing medians
+of different small subsets measures image variance and selection bias rather than the
+effect under test.
+
+---
+
+## Headline results (real MNIST 3-vs-5, n=8, L=5, angle encoding)
+
+40 attacked test images per cell × 3 seeds; VQC test accuracy 0.884 / 0.913 / 0.903.
+Success is **verified against the exact model**.
+
+**RQ1 — feasibility, at T = 60 000 shots**
+
+| method | verified success | median ℓ₂ | median queries |
+|---|---|---|---|
+| **Calibrated HSJA (ours)** | **0.59 ± 0.07** | 0.840 | 3494 |
+| PopSkipJump (constant noise) | 0.41 ± 0.01 | 0.919 | 616 |
+| Fixed-shot HSJA (naive port) | 0.14 ± 0.01 | 0.893 | 876 |
+| Classical-surrogate transfer | 1.00 | 0.517 | 331 |
+| HSJA on matched classical NN | 1.00 | 0.532 | 1441 |
+| White-box PGD (reference) | 1.00 | 0.492 | — |
+
+The anchor is the point: the *same* boundary walk breaks a parameter-matched **classical**
+NN 100% of the time in ~1.4k queries, but reaches only 59% against the VQC. The
+stochastic Born-rule oracle — not the attack — is what costs.
+
+**RQ3 — calibration payoff (verified success at equal budget)**
+
+| T | Calibrated | PopSkipJump | Fixed |
+|---|---|---|---|
+| 15 000 | **0.70** | 0.00 | 0.36 |
+| 60 000 | **0.59** | 0.41 | 0.14 |
+| 120 000 | **0.58** | 0.38 | 0.07 |
+
+Two effects worth naming:
+
+* **The naive port gets *worse* as the budget grows** (0.36 → 0.14 → 0.07). That is the
+  inward-bias signature: more iterations means more chances for a false-positive
+  "adversarial" reading, and the binary search never recovers from one.
+* **The calibrated attack trades success for precision** (success 0.70 → 0.58 while its
+  perturbation tightens 0.952 → 0.756). More budget buys finer boundary resolution `τ`,
+  so the returned point sits closer to the true boundary and is inherently more marginal.
+
+## Design notes worth knowing
+
+* **The analytic Born oracle.** For a diagonal observable each shot is an independent
+  Bernoulli with `p(+1) = (1+f)/2`, so the exact `S`-shot label is a single
+  `Binomial(S, (1+f)/2)` draw from the once-computed `f`. This reproduces real
+  shot-based measurement *exactly* (cross-checked against PennyLane's sampler in T1)
+  without materialising `S` samples.
+* **`f` is cached per point.** Repeated queries at the *same* point (the calibrated
+  attack's shot escalation, PopSkipJump's repeats) need only one simulation; the shots
+  remain independent draws from that same `f`. Verified **bit-identical** to the
+  uncached path — it is purely a compute optimisation.
+* **PopSkipJump gets its constant `p0` from config, not from measurement.** Estimating
+  the flip rate at a convenient (far-from-boundary) point returns ~0 and silently
+  collapses the baseline into the naive fixed-shot attack. Its premise is a constant,
+  oracle-agnostic noise level, so it is given exactly that.
+* **Figures**: validated colorblind-safe categorical palette used in fixed order and
+  always with a second encoding (marker + linestyle); single-hue sequential ramps for
+  magnitude; **never** a dual y-axis; error bars are s.d. over seeds.
+#   H a r d - L a b e l - A d v e r s a r i a l - A t t a c k s - o n - Q u a n t u m - C l a s s i f i e r s  
+ 
