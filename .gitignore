@@ -15,6 +15,7 @@ scratch/
 
 # Per-cell checkpoints (resume state; regenerated)
 results/checkpoints/
-# Kaggle/Colab run downloads: only the .ipynb itself is tracked under notebooks/,
-# never the exported run directories (results dumps, zips, duplicated source).
-notebooks/*/
+# Under notebooks/ track ONLY the .ipynb; never the Kaggle/Colab run downloads
+# (exported result dirs, logs, zips, duplicated source).
+notebooks/*
+!notebooks/*.ipynb

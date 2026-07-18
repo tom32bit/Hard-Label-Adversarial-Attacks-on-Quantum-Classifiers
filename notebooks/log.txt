@@ -1,143 +1,0 @@
-8.5s 1 0.00s - Debugger warning: It seems that frozen modules are being used, which may
-8.5s 2 0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off
-8.5s 3 0.00s - to python to disable frozen modules.
-8.5s 4 0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.
-9.4s 5 0.00s - Debugger warning: It seems that frozen modules are being used, which may
-9.4s 6 0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off
-9.4s 7 0.00s - to python to disable frozen modules.
-9.4s 8 0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.
-14.6s 9 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 57.3/57.3 kB 1.8 MB/s eta 0:00:00
-14.8s 10 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.4/5.4 MB 51.8 MB/s eta 0:00:00
-14.8s 11 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 57.3/57.3 kB 1.8 MB/s eta 0:00:00
-14.8s 12 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.4/5.4 MB 51.8 MB/s eta 0:00:00
-14.8s 13 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 937.5/937.5 kB 27.0 MB/s eta 0:00:00
-15.0s 14 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 937.5/937.5 kB 27.0 MB/s eta 0:00:00
-15.1s 15 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 25.5/25.5 MB 58.6 MB/s eta 0:00:00
-15.2s 16 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.4/2.4 MB 61.1 MB/s eta 0:00:00
-15.2s 17 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 167.2/167.2 kB 8.7 MB/s eta 0:00:00
-15.3s 18 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 25.5/25.5 MB 58.6 MB/s eta 0:00:00
-15.3s 19 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.4/2.4 MB 61.1 MB/s eta 0:00:00
-15.3s 20 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 167.2/167.2 kB 8.7 MB/s eta 0:00:00
-15.4s 21 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.8/8.8 MB 82.0 MB/s eta 0:00:00
-15.6s 22 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.8/8.8 MB 82.0 MB/s eta 0:00:00
-37.0s 23 pennylane    0.45.1
-37.0s 24 torch        2.10.0+cpu
-37.0s 25 numpy/scipy  2.0.2 1.16.3
-37.0s 26 devices      ['default.clifford', 'default.gaussian', 'default.mixed', 'default.qubit', 'default.qutrit', 'default.qutrit.mixed', 'default.tensor', 'null.qubit', 'reference.qubit', 'lightning.qubit']
-37.0s 27 workspace ready
-37.1s 28 Writing hlq/__init__.py
-37.1s 29 Writing hlq/seeds.py
-37.2s 30 Writing hlq/config.py
-37.2s 31 Writing hlq/data.py
-37.2s 32 Writing hlq/classifier.py
-37.2s 33 Writing hlq/classical.py
-37.3s 34 Writing hlq/oracle.py
-37.3s 35 Writing hlq/budget.py
-37.3s 36 Writing hlq/metrics.py
-37.4s 37 Writing hlq/concentration.py
-37.4s 38 Writing hlq/analysis.py
-37.4s 39 Writing hlq/attacks/__init__.py
-37.5s 40 Writing hlq/attacks/base.py
-37.5s 41 Writing hlq/attacks/hsja_fixed.py
-37.5s 42 Writing hlq/attacks/hsja_quantum.py
-37.6s 43 Writing hlq/attacks/popskipjump.py
-37.6s 44 Writing hlq/attacks/pgd_whitebox.py
-37.6s 45 Writing hlq/attacks/transfer.py
-37.6s 46 Writing hlq/defenses/__init__.py
-37.7s 47 Writing hlq/defenses/noise.py
-37.7s 48 Writing hlq/defenses/randomized_encoding.py
-37.7s 49 Writing hlq/runner.py
-37.8s 50 Writing experiments/run_sanity.py
-37.8s 51 Writing experiments/driver.py
-37.9s 52 Writing experiments/make_figures.py
-41.3s 53 [sanity] running T1 ...
-41.4s 54 /usr/local/lib/python3.12/dist-packages/pennylane/devices/device_api.py:207: PennyLaneDeprecationWarning: Setting shots on device is deprecated. Please use the `set_shots` transform on the respective QNode instead.
-41.4s 55 warnings.warn(
-42.1s 56 [sanity] T1: passed=True
-42.1s 57 [sanity] running T2 ...
-49.8s 58 /kaggle/working/hlq/classifier.py:182: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
-49.8s 59 Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
-49.8s 60 ep_loss += float(loss) * len(idx)
-74.9s 61 [sanity] T2: passed=False
-74.9s 62 [sanity] running T3 ...
-74.9s 63 [sanity] T3: passed=True
-74.9s 64 [sanity] running T4 ...
-75.9s 65 [sanity] T4: passed=True
-75.9s 66 [sanity] running T5 ...
-91.3s 67 [sanity] T5: passed=True
-91.3s 68 [sanity] running T6 ...
-97.8s 69 [sanity] T6: passed=True
-97.8s 70 
-97.8s 71 [sanity] wrote /kaggle/working/results/sanity.json
-97.8s 72 [sanity] T1-T4 trust gate: FAIL
-97.8s 73 T1: PASS
-97.8s 74 T2: FAIL
-97.8s 75 T3: PASS
-97.8s 76 T4: PASS
-97.8s 77 T5: PASS
-97.8s 78 T6: PASS
-99.2s 79 T1: PASS
-99.2s 80 T2: FAIL
-99.2s 81 T3: PASS
-99.2s 82 T4: PASS
-99.2s 83 T5: PASS
-99.2s 84 T6: PASS
-99.2s 85 
-99.2s 86 T1-T4 trust gate: FAIL
-99.3s 87 
-99.3s 88 ########## rq4 ##########
-102.5s 89 
-102.5s 90 === rq4 (preset=full, images=250, seeds=8) ===
-102.7s 91 
-102.7s 92 === rq4 (preset=full, images=250, seeds=8) ===
-107.0s 93 0%|          | 0.00/9.91M [00:00<?, ?B/s]  3%|▎         | 295k/9.91M [00:00<00:03, 2.81MB/s]  0%|          | 0.00/9.91M [00:00<?, ?B/s]  3%|▎         | 295k/9.91M [00:00<00:03, 2.81MB/s]
-107.1s 94 0%|          | 0.00/9.91M [00:00<?, ?B/s]  3%|▎         | 295k/9.91M [00:00<00:03, 2.81MB/s] 42%|████▏     | 4.16M/9.91M [00:00<00:00, 22.3MB/s]100%|██████████| 9.91M/9.91M [00:00<00:00, 36.1MB/s]
-107.2s 95 42%|████▏     | 4.16M/9.91M [00:00<00:00, 22.3MB/s]100%|██████████| 9.91M/9.91M [00:00<00:00, 36.1MB/s]
-107.2s 96 
-107.2s 97 42%|████▏     | 4.16M/9.91M [00:00<00:00, 22.3MB/s]100%|██████████| 9.91M/9.91M [00:00<00:00, 36.1MB/s]
-107.7s 98 0%|          | 0.00/28.9k [00:00<?, ?B/s]100%|██████████| 28.9k/28.9k [00:00<00:00, 942kB/s]
-107.9s 99 0%|          | 0.00/28.9k [00:00<?, ?B/s]100%|██████████| 28.9k/28.9k [00:00<00:00, 942kB/s]
-107.9s 100 
-107.9s 101 0%|          | 0.00/28.9k [00:00<?, ?B/s]100%|██████████| 28.9k/28.9k [00:00<00:00, 942kB/s]
-108.1s 102 0%|          | 0.00/1.65M [00:00<?, ?B/s] 16%|█▌        | 262k/1.65M [00:00<00:00, 2.45MB/s]100%|██████████| 1.65M/1.65M [00:00<00:00, 10.1MB/s]
-108.1s 103 0%|          | 0.00/1.65M [00:00<?, ?B/s] 16%|█▌        | 262k/1.65M [00:00<00:00, 2.45MB/s]100%|██████████| 1.65M/1.65M [00:00<00:00, 10.1MB/s]
-108.1s 104 
-108.1s 105 0%|          | 0.00/1.65M [00:00<?, ?B/s] 16%|█▌        | 262k/1.65M [00:00<00:00, 2.45MB/s]100%|██████████| 1.65M/1.65M [00:00<00:00, 10.1MB/s]
-108.4s 106 0%|          | 0.00/4.54k [00:00<?, ?B/s]100%|██████████| 4.54k/4.54k [00:00<00:00, 8.86MB/s]
-108.6s 107 0%|          | 0.00/4.54k [00:00<?, ?B/s]100%|██████████| 4.54k/4.54k [00:00<00:00, 8.86MB/s]
-108.6s 108 
-108.6s 109 0%|          | 0.00/4.54k [00:00<?, ?B/s]100%|██████████| 4.54k/4.54k [00:00<00:00, 8.86MB/s]
-110.1s 110 /kaggle/working/hlq/classifier.py:182: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
-110.1s 111 Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
-110.1s 112 ep_loss += float(loss) * len(idx)
-110.3s 113 /kaggle/working/hlq/classifier.py:182: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
-110.3s 114 Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
-110.3s 115 ep_loss += float(loss) * len(idx)
-110.3s 116 
-110.3s 117 /kaggle/working/hlq/classifier.py:182: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
-110.3s 118 Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
-110.3s 119 ep_loss += float(loss) * len(idx)
-274.7s 120 [warmup 1/8] mnist_3v5_n6_L5_angle_local_z_s0  test_acc=0.902  (172.1s)
-274.9s 121 [warmup 1/8] mnist_3v5_n6_L5_angle_local_z_s0  test_acc=0.902  (172.1s)
-438.6s 122 [warmup 2/8] mnist_3v5_n6_L5_angle_local_z_s1  test_acc=0.903  (164.0s)
-438.9s 123 [warmup 2/8] mnist_3v5_n6_L5_angle_local_z_s1  test_acc=0.903  (164.0s)
-601.6s 124 [warmup 3/8] mnist_3v5_n6_L5_angle_local_z_s2  test_acc=0.914  (163.0s)
-601.9s 125 [warmup 3/8] mnist_3v5_n6_L5_angle_local_z_s2  test_acc=0.914  (163.0s)
-765.6s 126 [warmup 4/8] mnist_3v5_n6_L5_angle_local_z_s3  test_acc=0.901  (164.0s)
-765.8s 127 [warmup 4/8] mnist_3v5_n6_L5_angle_local_z_s3  test_acc=0.901  (164.0s)
-930.5s 128 [warmup 5/8] mnist_3v5_n6_L5_angle_local_z_s4  test_acc=0.914  (164.9s)
-930.7s 129 [warmup 5/8] mnist_3v5_n6_L5_angle_local_z_s4  test_acc=0.914  (164.9s)
-1095.0s 130 [warmup 6/8] mnist_3v5_n6_L5_angle_local_z_s5  test_acc=0.899  (164.6s)
-1095.3s 131 [warmup 6/8] mnist_3v5_n6_L5_angle_local_z_s5  test_acc=0.899  (164.6s)
-1258.5s 132 [warmup 7/8] mnist_3v5_n6_L5_angle_local_z_s6  test_acc=0.912  (163.4s)
-1258.7s 133 [warmup 7/8] mnist_3v5_n6_L5_angle_local_z_s6  test_acc=0.912  (163.4s)
-1424.2s 134 [warmup 8/8] mnist_3v5_n6_L5_angle_local_z_s7  test_acc=0.905  (165.8s)
-1424.2s 135 [Parallel(n_jobs=4)]: Using backend LokyBackend with 4 concurrent workers.
-1424.5s 136 [warmup 8/8] mnist_3v5_n6_L5_angle_local_z_s7  test_acc=0.905  (165.8s)
-1424.5s 137 [Parallel(n_jobs=4)]: Using backend LokyBackend with 4 concurrent workers.
-1424.5s 138 
-1424.5s 139 [Parallel(n_jobs=4)]: Using backend LokyBackend with 4 concurrent workers.
-3865.0s 140 [Parallel(n_jobs=4)]: Done  10 tasks      | elapsed: 40.7min
-3865.3s 141 [Parallel(n_jobs=4)]: Done  10 tasks      | elapsed: 40.7min
-3865.3s 142 
-3865.3s 143 [Parallel(n_jobs=4)]: Done  10 tasks      | elapsed: 40.7min
