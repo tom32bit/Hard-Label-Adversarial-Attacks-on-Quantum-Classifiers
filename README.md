@@ -176,6 +176,28 @@ supporting H2. **Ablations:** re-uploading is the most attackable encoding (0.74
 and amplitude the least (0.24); MNIST 0-vs-1 (near-separable, clean acc 0.995) is easier
 to attack than 3-vs-5 or Fashion-MNIST.
 
+**RQ4 — first gradient-free test of two published defenses** (n=4, 3 seeds; the
+calibrated hard-label attacker never computes a gradient). Both sides of H4 appear, one
+per defense:
+
+| defense | attack success | clean accuracy | verdict |
+|---|---|---|---|
+| none | 0.80 | 0.878 | baseline (attackable) |
+| depolarizing noise | 0.40 | **0.480 (below chance)** | H4a — false sense of security (the model collapsed, it was not defended) |
+| randomized encoding | **0.12** | 0.832 | H4b — a genuine, non-masking defense (accuracy preserved, attack degraded) |
+
+The chance line is the whole story: the noise defense's apparent robustness is its
+accuracy falling *below* chance, exactly the confound RQ5 guards against; the randomized
+encoding is the real thing.
+
+**RQ5 — concentration vs robustness.** `Var[f_θ(x)]` decays with qubit count (local
+observable fit `R² = 0.96`) while attack success falls (0.73 → 0.40 from n=4 to n=10) and
+perturbation grows — apparent robustness that tracks concentration, reported alongside
+accuracy-above-chance so it cannot be mistaken for a defense.
+
+All of RQ4/RQ5 were produced by the Kaggle notebook in **~2.2 h** (well inside the 12 h
+limit) on the `kaggle` preset, with the checkpointing described below.
+
 ---
 
 ## Design notes worth knowing

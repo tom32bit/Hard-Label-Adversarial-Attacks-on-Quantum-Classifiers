@@ -13,7 +13,8 @@ models_cache/
 scratch/
 *.log
 
-# Per-cell checkpoints (resume state; regenerated) and Kaggle run downloads
+# Per-cell checkpoints (resume state; regenerated)
 results/checkpoints/
-notebooks/Output/
-notebooks/log.txt
+# Kaggle/Colab run downloads: only the .ipynb itself is tracked under notebooks/,
+# never the exported run directories (results dumps, zips, duplicated source).
+notebooks/*/

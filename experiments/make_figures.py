@@ -424,7 +424,8 @@ def fig_rq5(rq5, sanity, out):
     t6 = (sanity or {}).get("T6")
     if not (fits or t6):
         return
-    fig, axes = plt.subplots(1, 2, figsize=(7.8, 3.2))
+    fig, axes = plt.subplots(1, 2, figsize=(8.6, 3.3))
+    fig.subplots_adjust(wspace=0.32)
 
     ax = axes[0]
     if fits:
@@ -448,7 +449,7 @@ def fig_rq5(rq5, sanity, out):
     ax.set_yscale("log")
     ax.set_xlabel("qubits  $n$")
     ax.set_ylabel(r"$\mathrm{Var}[f_\theta(x)]$")
-    ax.set_title("Exponential concentration of the decision value", color=INK)
+    ax.set_title("Decision-value variance (concentration)", color=INK, fontsize=9.5)
     ax.legend(loc="best")
 
     ax = axes[1]
@@ -472,11 +473,11 @@ def fig_rq5(rq5, sanity, out):
                        marker=MARKERS[i], zorder=3)
         ax.set_xlabel("qubits  $n$")
         ax.set_ylabel(r"median $\ell_2$ perturbation")
-        ax.set_title("Apparent robustness (marker size $\\propto$ accuracy above chance)",
-                     color=INK, fontsize=9)
+        ax.set_title(r"Apparent robustness (mark size $\propto$ acc. above chance)",
+                     color=INK, fontsize=9.5)
         ax.legend(loc="best")
     fig.suptitle("RQ5  Separating genuine robustness from exponential concentration",
-                 y=1.03, fontsize=10, color=INK)
+                 y=1.06, fontsize=10.5, color=INK)
     save(fig, out, "fig_RQ5_concentration")
 
 
