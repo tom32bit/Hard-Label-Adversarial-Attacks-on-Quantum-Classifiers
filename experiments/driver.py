@@ -20,7 +20,10 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from hlq.analysis import budget_curve, find_interior_optimum, save_json
+import hashlib
+import json
+
+from hlq.analysis import _default, budget_curve, find_interior_optimum, save_json
 from hlq.classifier import train_or_load
 from hlq.concentration import fit_exponential_concentration
 from hlq.config import AttackConfig, ClassifierConfig, DefenseConfig
@@ -37,8 +40,16 @@ RESULTS = os.path.join(ROOT, "results")
 PRESETS = {
     "smoke":  dict(n_images=4,   seeds=(0, 1),                   iterations=8,  budget=20_000),
     "medium": dict(n_images=40,  seeds=(0, 1, 2),                iterations=15, budget=60_000),
+    # "kaggle": tuned to finish RQ4+RQ5 inside a single ~12h CPU session, with real
+    # statistics (3 seeds).  The heavy blocks additionally cap their most expensive axis
+    # internally (RQ4 -> n=4 density-matrix; RQ5 -> n<=10 by default).
+    "kaggle": dict(n_images=60,  seeds=(0, 1, 2),                iterations=20, budget=80_000),
     "full":   dict(n_images=250, seeds=(0, 1, 2, 3, 4, 5, 6, 7), iterations=30, budget=200_000),
 }
+
+# RQ5 qubit ladder. n=12 statevector TRAINING dominates the whole run (tens of minutes
+# per model), so it is opt-in via HLQ_RQ5_MAX_N; the default stops at 10.
+_RQ5_MAX_N = int(os.environ.get("HLQ_RQ5_MAX_N", "10"))
 
 # Principled defaults held fixed while one axis varies (plan Sec. 4.1/5).
 DEFAULT_N, DEFAULT_L, DEFAULT_ENC, DEFAULT_OBS = 8, 5, "angle", "local_z"
@@ -81,11 +92,56 @@ def warmup_models(clf_cfgs, verbose=True):
     return list(seen.values())
 
 
+# --------------------------------------------------------------------------- #
+# Per-cell checkpointing + resume.  A cell is the unit of work AND of durability:
+# each completed cell is written to results/checkpoints/<rq>/<id>.json the instant it
+# finishes, so a session that hits Kaggle's 12h wall keeps every cell it computed, and
+# re-running skips them.  Workers write distinct files, so there is no contention.
+# --------------------------------------------------------------------------- #
+_CKPT_DIR = None
+
+
+def _cell_id(task) -> str:
+    payload = {"clf": task["clf_cfg"].to_dict(), "def": task["def_cfg"].to_dict(),
+               "atk": task["atk_cfg"].to_dict(), "n_images": task.get("n_images"),
+               "force_probe_shots": task.get("force_probe_shots")}
+    return hashlib.md5(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()[:16]
+
+
+def _run_cell_ckpt(task, ckpt_dir):
+    """Run one cell, or load it from a checkpoint if it was already computed."""
+    path = os.path.join(ckpt_dir, _cell_id(task) + ".json")
+    if os.path.exists(path):
+        try:
+            with open(path) as fh:
+                return json.load(fh)
+        except Exception:
+            pass                                   # corrupt/partial -> recompute
+    res = run_cell(**task)
+    tmp = path + ".tmp"
+    with open(tmp, "w") as fh:
+        json.dump(res, fh, default=_default)
+    os.replace(tmp, path)                          # atomic publish
+    return res
+
+
 def _run_all(jobs, tasks):
-    """Execute cells, in parallel when jobs>1 (configs are picklable; models are cached)."""
+    """Execute cells (parallel when jobs>1), checkpointing each when _CKPT_DIR is set."""
+    ckpt = _CKPT_DIR
+    if ckpt:
+        os.makedirs(ckpt, exist_ok=True)
+        fn = lambda t: _run_cell_ckpt(t, ckpt)
+        done = sum(os.path.exists(os.path.join(ckpt, _cell_id(t) + ".json")) for t in tasks)
+        if done:
+            print(f"  [resume] {done}/{len(tasks)} cells already checkpointed", flush=True)
+    else:
+        fn = lambda t: run_cell(**t)
     if jobs <= 1:
-        return [run_cell(**t) for t in tasks]
+        return [fn(t) for t in tasks]
     from joblib import Parallel, delayed
+    if ckpt:
+        return Parallel(n_jobs=jobs, backend="loky", verbose=5)(
+            delayed(_run_cell_ckpt)(t, ckpt) for t in tasks)
     return Parallel(n_jobs=jobs, backend="loky", verbose=5)(
         delayed(run_cell)(**t) for t in tasks)
 
@@ -217,12 +273,18 @@ def rq4(P, jobs):
                 DefenseConfig("depolarizing", depolarizing_p=0.05),
                 DefenseConfig("randomized_encoding", randomized_strength=0.30)]
     attacks = ["calibrated_hsja", "pgd_whitebox"]
-    # density-matrix simulation is O(4^n): cap n for the noise defense
-    n_def = min(DEFAULT_N, 6)
+    # The depolarizing defense uses density-matrix simulation (O(4^n), no broadcasting),
+    # which dominates cost, so RQ4 runs at n=4 (256-dim) -- ~16x faster than n=6 -- with a
+    # reduced image count and a lighter attack budget. The mechanism (margin collapse ->
+    # gradient-free robustness) is qubit-count-independent; RQ5 handles the n sweep.
+    n_def = min(DEFAULT_N, 4)
+    n_img = max(8, P["n_images"] // 3)
+    def4 = dict(iterations=min(P["iterations"], 15),
+                total_budget=min(P["budget"], 40_000))
     clfs = [_clf(s, n_qubits=n_def) for s in P["seeds"]]
     warmup_models(clfs)
     tasks = [dict(clf_cfg=_clf(s, n_qubits=n_def), def_cfg=d,
-                  atk_cfg=_atk(a, s, P), n_images=max(8, P["n_images"] // 5))
+                  atk_cfg=_atk(a, s, P, **def4), n_images=n_img)
              for s in P["seeds"] for d in defenses for a in attacks]
     cells = _run_all(jobs, tasks)
     g = _group(cells, lambda c: (c["defense"]["name"], c["attack"]["name"]))
@@ -237,13 +299,19 @@ def rq4(P, jobs):
 # RQ5: is apparent robustness really exponential concentration?
 # --------------------------------------------------------------------------- #
 def rq5(P, jobs):
-    ns = [4, 6, 8, 10, 12]
+    ns = [n for n in (4, 6, 8, 10, 12) if n <= _RQ5_MAX_N]     # n=12 opt-in (see top)
     obs = ["local_z", "global_z"]
-    clfs = [_clf(s, n_qubits=n, observable=o) for s in P["seeds"] for n in ns for o in obs]
+    n_img = max(8, P["n_images"] // 4)
+
+    # Training the large-n models is the cost; fewer epochs still exhibit the
+    # concentration effect this RQ measures (var[f] collapse for the global observable).
+    def _c5(s, n, o):
+        return _clf(s, n_qubits=n, observable=o, epochs=min(40, 25 if n >= 8 else 40))
+
+    clfs = [_c5(s, n, o) for s in P["seeds"] for n in ns for o in obs]
     warmup_models(clfs)
-    tasks = [dict(clf_cfg=_clf(s, n_qubits=n, observable=o), def_cfg=DefenseConfig("none"),
-                  atk_cfg=_atk("calibrated_hsja", s, P),
-                  n_images=max(8, P["n_images"] // 4))
+    tasks = [dict(clf_cfg=_c5(s, n, o), def_cfg=DefenseConfig("none"),
+                  atk_cfg=_atk("calibrated_hsja", s, P), n_images=n_img)
              for s in P["seeds"] for n in ns for o in obs]
     cells = _run_all(jobs, tasks)
     g = _group(cells, lambda c: (c["classifier"]["observable"], c["classifier"]["n_qubits"]))
@@ -311,6 +379,10 @@ def main():
     ap.add_argument("--images", type=int, default=None, help="override images per cell")
     ap.add_argument("--seeds", type=int, default=None, help="override number of seeds")
     ap.add_argument("--out", default=RESULTS)
+    ap.add_argument("--force", action="store_true",
+                    help="recompute even if results/<rq>.json already exists")
+    ap.add_argument("--no-checkpoint", action="store_true",
+                    help="disable per-cell checkpointing/resume")
     args = ap.parse_args()
 
     P = dict(PRESETS[args.preset])
@@ -328,7 +400,14 @@ def main():
                "jobs": args.jobs},
               os.path.join(args.out, "config.json"))
 
+    global _CKPT_DIR
     for name in targets:
+        path = os.path.join(args.out, f"{name}.json")
+        if os.path.exists(path) and not args.force:
+            print(f"\n=== {name}: results/{name}.json exists -> skip (use --force to redo) ===",
+                  flush=True)
+            continue
+        _CKPT_DIR = None if args.no_checkpoint else os.path.join(args.out, "checkpoints", name)
         t0 = time.time()
         print(f"\n=== {name} (preset={args.preset}, images={P['n_images']}, "
               f"seeds={len(P['seeds'])}) ===", flush=True)
@@ -336,7 +415,6 @@ def main():
         res["_meta"] = {"rq": name, "preset": args.preset,
                         "params": {**P, "seeds": list(P["seeds"])},
                         "runtime_s": round(time.time() - t0, 1)}
-        path = os.path.join(args.out, f"{name}.json")
         save_json(res, path)
         print(f"=== {name} done in {res['_meta']['runtime_s']}s -> {path}", flush=True)
 

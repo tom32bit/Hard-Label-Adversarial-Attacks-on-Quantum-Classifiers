@@ -120,13 +120,17 @@ print("\\nT1-T4 trust gate:", "PASS" if s["_summary"]["trust_gate_T1_T4"] else "
            "| RQ5 | Is apparent robustness really exponential concentration? |\n\n"
            "`smoke` proves the pipeline; `medium` gives real trends; `full` is the "
            "heavier-statistics scope from the plan (250 images/cell, 8 seeds)."),
-        code('''# Defaults target the two heaviest blocks (RQ4 defenses, RQ5 concentration) at the
-# full "heavier statistics" scope -- these are the ones best run on Kaggle rather than a
-# laptop. Tip: set PRESET = "smoke" for a first end-to-end check (minutes), then "full".
-# To run the whole study here instead, use the ALL_RQS list below.
-PRESET = "full"           # "smoke" | "medium" | "full"
+        code('''# Defaults target the two heaviest blocks (RQ4 defenses, RQ5 concentration) with the
+# "kaggle" preset, tuned to finish inside one ~12h CPU session (3 seeds; RQ4 -> n=4
+# density-matrix; RQ5 -> n<=10). Every cell is CHECKPOINTED the moment it finishes, so a
+# timeout keeps all completed cells and re-running RESUMES (skips done cells and whole
+# RQs whose results/<rq>.json already exists).
+PRESET = "kaggle"          # "smoke"(min) | "kaggle"(~fits 12h) | "medium" | "full"
 JOBS   = 4                 # parallel cells; set to the session's core count
 RQS    = ["rq4", "rq5"]    # the blocks not yet computed
+
+# Opt in to the n=12 tier of RQ5 (adds tens of minutes of training per model):
+# import os; os.environ["HLQ_RQ5_MAX_N"] = "12"
 
 ALL_RQS = ["rq1", "rq2", "rq3", "rq4", "rq5", "ablation_encoding",
            "ablation_depth", "ablation_dataset"]   # RQS = ALL_RQS to run everything

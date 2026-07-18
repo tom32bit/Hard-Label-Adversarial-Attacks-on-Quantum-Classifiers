@@ -12,3 +12,8 @@ models_cache/
 # Scratch / logs
 scratch/
 *.log
+
+# Per-cell checkpoints (resume state; regenerated) and Kaggle run downloads
+results/checkpoints/
+notebooks/Output/
+notebooks/log.txt
