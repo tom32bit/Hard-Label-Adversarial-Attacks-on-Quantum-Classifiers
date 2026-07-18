@@ -42,11 +42,12 @@ INK, INK2, MUTED, GRID = "#0b0b0b", "#52514e", "#8a8985", "#e3e3e0"
 
 # stable slot per method so colour follows the entity, never its rank
 METHOD_SLOT = {"calibrated_hsja": 0, "fixed_hsja": 5, "popskipjump": 3,
-               "pgd_whitebox": 1, "transfer": 6, "classical_hsja": 4}
+               "pgd_whitebox": 1, "momentum": 7, "transfer": 6, "classical_hsja": 4}
 METHOD_LABEL = {"calibrated_hsja": "Calibrated HSJA (ours, M1+M2)",
                 "fixed_hsja": "Fixed-shot HSJA (naive port)",
                 "popskipjump": "PopSkipJump (constant noise)",
                 "pgd_whitebox": "White-box PGD (reference)",
+                "momentum": "Momentum attack [6] (white-box)",
                 "transfer": "Classical-surrogate transfer",
                 "classical_hsja": "HSJA on matched classical NN"}
 # short two-line forms for categorical axes (the long ones collide)
@@ -54,6 +55,7 @@ METHOD_SHORT = {"calibrated_hsja": "Calibrated\n(ours)",
                 "fixed_hsja": "Fixed-shot\n(naive)",
                 "popskipjump": "PopSkipJump\n(const. noise)",
                 "pgd_whitebox": "White-box PGD\n(reference)",
+                "momentum": "Momentum [6]\n(white-box)",
                 "transfer": "Transfer\n(surrogate)",
                 "classical_hsja": "Classical NN\n(anchor)"}
 
@@ -220,7 +222,7 @@ def fig_rq1(rq1, out):
         return
     agg = rq1["aggregated"]
     order = [m for m in ["calibrated_hsja", "popskipjump", "fixed_hsja", "transfer",
-                         "classical_hsja", "pgd_whitebox"] if m in agg]
+                         "classical_hsja", "pgd_whitebox", "momentum"] if m in agg]
     fig, axes = plt.subplots(2, 1, figsize=(6.6, 5.4), sharex=True)
 
     ax = axes[0]

@@ -9,6 +9,7 @@ from .hsja_fixed import FixedShotHSJA
 from .hsja_quantum import CalibratedHSJA
 from .popskipjump import PopSkipJump
 from .pgd_whitebox import pgd_attack
+from .momentum import momentum_attack
 from .transfer import transfer_attack
 
 BUILDERS = {
@@ -21,5 +22,5 @@ BUILDERS = {
 __all__ = [
     "AttackResult", "DecisionBasedAttack", "Domain",
     "FixedShotHSJA", "CalibratedHSJA", "PopSkipJump",
-    "pgd_attack", "transfer_attack", "BUILDERS",
+    "pgd_attack", "momentum_attack", "transfer_attack", "BUILDERS",
 ]

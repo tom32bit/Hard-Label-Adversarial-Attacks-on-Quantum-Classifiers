@@ -24,6 +24,7 @@ ATTACKS = (
     "fixed_hsja",        # naive port
     "popskipjump",       # constant-flip baseline
     "pgd_whitebox",      # upper-bound reference
+    "momentum",          # momentum-based quantum attack (QMI precedent [6])
     "transfer",          # classical-surrogate transfer
     "classical_hsja",    # HSJA on a matched classical NN (anchor)
 )
@@ -106,6 +107,7 @@ class AttackConfig:
     pgd_steps: int = 100
     pgd_step_size: float = 0.02
     pgd_epsilon: float = 0.8
+    momentum_mu: float = 1.0              # decay factor for the momentum attack [6]
     seed: int = 0
 
     def __post_init__(self) -> None:

@@ -11,7 +11,7 @@ from dataclasses import replace
 
 import numpy as np
 
-from .attacks import BUILDERS, Domain, pgd_attack, transfer_attack
+from .attacks import BUILDERS, Domain, momentum_attack, pgd_attack, transfer_attack
 from .classical import MatchedClassicalNN
 from .classifier import train_or_load
 from .concentration import margin_stats, robustness_guardrail
@@ -88,10 +88,11 @@ def run_cell(clf_cfg: ClassifierConfig, def_cfg: DefenseConfig, atk_cfg: AttackC
         pool = bundle.X_train[bundle.y_train != y0][:40]
         rng = set_seed(atk_cfg.seed * 100003 + int(idx))       # per-image reproducibility
 
-        if atk_cfg.name == "pgd_whitebox":
+        if atk_cfg.name in ("pgd_whitebox", "momentum"):
             if not hasattr(deployed, "decision_function_torch"):
                 continue                                        # white-box needs gradients
-            res = pgd_attack(deployed, x0, y0, domain, atk_cfg)
+            wb = pgd_attack if atk_cfg.name == "pgd_whitebox" else momentum_attack
+            res = wb(deployed, x0, y0, domain, atk_cfg)
             v = _verify(deployed, x0, res["x_adv"], y0, stochastic)
             rec = {"queries": res["queries"], "shots": res["shots"],
                    "grad_steps": res.get("grad_steps", 0)}

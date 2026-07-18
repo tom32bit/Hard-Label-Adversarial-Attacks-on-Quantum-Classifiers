@@ -20,7 +20,7 @@ MODULES = [
     "hlq/metrics.py", "hlq/concentration.py", "hlq/analysis.py",
     "hlq/attacks/__init__.py", "hlq/attacks/base.py", "hlq/attacks/hsja_fixed.py",
     "hlq/attacks/hsja_quantum.py", "hlq/attacks/popskipjump.py",
-    "hlq/attacks/pgd_whitebox.py", "hlq/attacks/transfer.py",
+    "hlq/attacks/pgd_whitebox.py", "hlq/attacks/momentum.py", "hlq/attacks/transfer.py",
     "hlq/defenses/__init__.py", "hlq/defenses/noise.py",
     "hlq/defenses/randomized_encoding.py", "hlq/runner.py",
     "experiments/run_sanity.py", "experiments/driver.py", "experiments/make_figures.py",

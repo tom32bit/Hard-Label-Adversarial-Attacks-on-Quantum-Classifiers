@@ -67,6 +67,7 @@ hlq/                        the library
     hsja_fixed.py           naive fixed-shot port (and the deterministic anchor)
     popskipjump.py          constant-flip-rate baseline
     pgd_whitebox.py         white-box reference (strongest attacker)
+    momentum.py             momentum-based quantum attack (QMI precedent [6])
     transfer.py             classical-surrogate transfer
   defenses/
     noise.py                depolarizing defense (true density-matrix simulation)

@@ -183,7 +183,7 @@ def _summarize(groups) -> dict:
 # --------------------------------------------------------------------------- #
 def rq1(P, jobs):
     attacks = ["calibrated_hsja", "fixed_hsja", "popskipjump", "pgd_whitebox",
-               "transfer", "classical_hsja"]
+               "momentum", "transfer", "classical_hsja"]
     tasks, clfs = [], []
     for s in P["seeds"]:
         c = _clf(s)
