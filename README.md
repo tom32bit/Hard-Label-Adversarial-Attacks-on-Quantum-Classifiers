@@ -11,6 +11,13 @@ PennyLane + PyTorch. **No GPU or quantum hardware required.**
 
 ---
 
+**Proofs:** the theory is worked out with full proofs in
+[`docs/theory.md`](docs/theory.md) — the exact Binomial oracle (Prop 1), the
+shot-limited boundary resolution `τ(S)` and why the naive port diverges with budget
+(Prop 2), the query/shot economics with a *proved* answer that reframes RQ2 (Prop 3),
+and the concentration ⟹ exponential hard-label-cost theorem behind the defense results
+(Thm 4).
+
 ## The core idea
 
 A deployed quantum classifier returns a *measured label*, not a gradient. With a finite

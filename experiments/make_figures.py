@@ -373,16 +373,23 @@ def fig_rq4(rq4, out):
     agg = rq4["aggregated"]
     defs_ = ["none", "depolarizing", "randomized_encoding"]
     atks = ["calibrated_hsja", "pgd_whitebox"]
-    present = [(d, a) for d in defs_ for a in atks if f"{d}|{a}" in agg]
-    if not present:
+
+    def _key(d, a):
+        """Resolve 'd|a', or the largest-n variant 'd|a|n=..' under an HLQ_RQ4_NS sweep."""
+        if f"{d}|{a}" in agg:
+            return f"{d}|{a}"
+        cands = [k for k in agg if k.startswith(f"{d}|{a}|n=")]
+        return max(cands, key=lambda s: int(s.split("n=")[1])) if cands else None
+
+    if not any(_key(d, a) for d in defs_ for a in atks):
         return
     fig, axes = plt.subplots(2, 1, figsize=(6.4, 5.4), sharex=True)
     w = 0.36
     for ai, a in enumerate(atks):
         xs, mu, sd, cl = [], [], [], []
         for di, d in enumerate(defs_):
-            k = f"{d}|{a}"
-            if k not in agg:
+            k = _key(d, a)
+            if k is None:
                 continue
             xs.append(di + (ai - 0.5) * w)
             mu.append(agg[k]["median_perturbation"]["mean"])

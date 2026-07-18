@@ -24,6 +24,7 @@ MODULES = [
     "hlq/defenses/__init__.py", "hlq/defenses/noise.py",
     "hlq/defenses/randomized_encoding.py", "hlq/runner.py",
     "experiments/run_sanity.py", "experiments/driver.py", "experiments/make_figures.py",
+    "experiments/significance.py",
 ]
 
 
@@ -120,20 +121,25 @@ print("\\nT1-T4 trust gate:", "PASS" if s["_summary"]["trust_gate_T1_T4"] else "
            "| RQ5 | Is apparent robustness really exponential concentration? |\n\n"
            "`smoke` proves the pipeline; `medium` gives real trends; `full` is the "
            "heavier-statistics scope from the plan (250 images/cell, 8 seeds)."),
-        code('''# Defaults target the two heaviest blocks (RQ4 defenses, RQ5 concentration) with the
-# "kaggle" preset, tuned to finish inside one ~12h CPU session (3 seeds; RQ4 -> n=4
-# density-matrix; RQ5 -> n<=10). Every cell is CHECKPOINTED the moment it finishes, so a
-# timeout keeps all completed cells and re-running RESUMES (skips done cells and whole
-# RQs whose results/<rq>.json already exists).
-PRESET = "kaggle"          # "smoke"(min) | "kaggle"(~fits 12h) | "medium" | "full"
+        code('''# PUBLICATION-GRADE STATISTICS (8 seeds). Because the head-to-head blocks and the
+# training-heavy RQ5 don't both fit one 12h CPU session, run this in TWO sessions:
+#
+#   RUN 1 (head-to-head, ~8-9h):  RQS = RUN1   (rq1/rq3/rq4/rq2 at 8 seeds)
+#   RUN 2 (concentration, ~4h):   RQS = RUN2   (rq5, self-capped to 5 seeds)
+#
+# Each run is self-contained and downloads its own results zip (last cell). Merge both
+# results/ folders locally and regenerate figures. Every cell is CHECKPOINTED, so a
+# timeout inside a session loses nothing and re-running resumes.
+PRESET = "kaggle8"         # 8 seeds. Use "kaggle" (3 seeds) for a faster first pass.
 JOBS   = 4                 # parallel cells; set to the session's core count
-RQS    = ["rq4", "rq5"]    # the blocks not yet computed
+RUN1   = ["rq1", "rq3", "rq4", "rq2"]     # rq2 last: its allocation sweep is the slowest
+RUN2   = ["rq5"]
+RQS    = RUN1              # <- switch to RUN2 for the second session
 
-# Opt in to the n=12 tier of RQ5 (adds tens of minutes of training per model):
-# import os; os.environ["HLQ_RQ5_MAX_N"] = "12"
-
+# RQ4 across qubit count (tests Theorem 4's exponential scaling): os.environ["HLQ_RQ4_NS"]="4,6"
+# RQ5 n=12 tier (tens of min/model training):                     os.environ["HLQ_RQ5_MAX_N"]="12"
 ALL_RQS = ["rq1", "rq2", "rq3", "rq4", "rq5", "ablation_encoding",
-           "ablation_depth", "ablation_dataset"]   # RQS = ALL_RQS to run everything
+           "ablation_depth", "ablation_dataset"]
 
 import subprocess, sys
 for rq in RQS:
@@ -152,6 +158,10 @@ for p in sorted(glob.glob("figures/*.png")):
     print("\\n" + os.path.basename(p))
     display(Image(p))
 """),
+        md("## 5b. Significance tests\n\nBootstrap CIs + Mann-Whitney / two-proportion "
+           "tests on the per-image data, so each head-to-head claim carries a p-value and "
+           "an effect size (plan Sec. 6). Runs only for whichever RQs are present."),
+        code("""!python experiments/significance.py"""),
         md("## 6. Results summary\n\nThe headline numbers, straight out of the JSON."),
         code('''import json, os, numpy as np
 

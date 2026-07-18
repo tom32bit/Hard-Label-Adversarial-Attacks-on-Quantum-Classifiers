@@ -114,3 +114,49 @@ def pearson_with_p(x, y) -> dict:
         return {"r": float("nan"), "p": float("nan"), "n": int(m.sum())}
     r, p = stats.pearsonr(x[m], y[m])
     return {"r": float(r), "p": float(p), "n": int(m.sum())}
+
+
+# --------------------------------------------------------------------------- #
+# Significance tests for head-to-head claims (plan Sec. 6: report effect + p-value)
+# --------------------------------------------------------------------------- #
+def bootstrap_ci(values, stat="median", n_boot=5000, alpha=0.05, seed=0) -> dict:
+    """Percentile bootstrap CI for a statistic of finite values (e.g. median pert)."""
+    v = np.asarray([x for x in values if np.isfinite(x)], float)
+    if len(v) < 2:
+        return {"point": float("nan"), "lo": float("nan"), "hi": float("nan"), "n": int(len(v))}
+    rng = np.random.default_rng(seed)
+    fn = np.median if stat == "median" else np.mean
+    boot = np.array([fn(rng.choice(v, size=len(v), replace=True)) for _ in range(n_boot)])
+    return {"point": float(fn(v)), "lo": float(np.quantile(boot, alpha / 2)),
+            "hi": float(np.quantile(boot, 1 - alpha / 2)), "n": int(len(v)), "stat": stat}
+
+
+def compare_perturbations(perts_a, perts_b) -> dict:
+    """Mann-Whitney U on two attacks' per-image perturbations (successes only).
+
+    Answers 'does attack A reach smaller perturbations than B?' with an effect size
+    (rank-biserial) and a p-value, over the images each actually broke.
+    """
+    a = np.asarray([x for x in perts_a if np.isfinite(x)], float)
+    b = np.asarray([x for x in perts_b if np.isfinite(x)], float)
+    if len(a) < 3 or len(b) < 3:
+        return {"p_value": float("nan"), "n_a": int(len(a)), "n_b": int(len(b))}
+    u, p = stats.mannwhitneyu(a, b, alternative="two-sided")
+    rank_biserial = 1.0 - 2.0 * u / (len(a) * len(b))     # effect size in [-1, 1]
+    return {"median_a": float(np.median(a)), "median_b": float(np.median(b)),
+            "u_statistic": float(u), "p_value": float(p),
+            "rank_biserial_effect": float(rank_biserial),
+            "n_a": int(len(a)), "n_b": int(len(b))}
+
+
+def proportion_test(succ_a, n_a, succ_b, n_b) -> dict:
+    """Two-proportion z-test for success-rate differences (e.g. calibrated vs baseline)."""
+    if n_a == 0 or n_b == 0:
+        return {"p_value": float("nan")}
+    pa, pb = succ_a / n_a, succ_b / n_b
+    pooled = (succ_a + succ_b) / (n_a + n_b)
+    se = np.sqrt(pooled * (1 - pooled) * (1 / n_a + 1 / n_b))
+    z = (pa - pb) / se if se > 0 else 0.0
+    p = 2 * (1 - stats.norm.cdf(abs(z)))
+    return {"prop_a": float(pa), "prop_b": float(pb), "diff": float(pa - pb),
+            "z": float(z), "p_value": float(p), "n_a": int(n_a), "n_b": int(n_b)}

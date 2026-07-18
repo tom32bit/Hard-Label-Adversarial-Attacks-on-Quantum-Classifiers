@@ -44,12 +44,24 @@ PRESETS = {
     # statistics (3 seeds).  The heavy blocks additionally cap their most expensive axis
     # internally (RQ4 -> n=4 density-matrix; RQ5 -> n<=10 by default).
     "kaggle": dict(n_images=60,  seeds=(0, 1, 2),                iterations=20, budget=80_000),
+    # "kaggle8": publication-grade statistics (8 seeds) for the head-to-head blocks
+    # (RQ1/RQ2/RQ3/RQ4). RQ5 self-caps its seed count (see _RQ5_MAX_SEEDS) because its
+    # per-cell cost is model TRAINING, which does not shrink with fewer attacked images.
+    "kaggle8": dict(n_images=80,  seeds=(0, 1, 2, 3, 4, 5, 6, 7), iterations=20, budget=80_000),
     "full":   dict(n_images=250, seeds=(0, 1, 2, 3, 4, 5, 6, 7), iterations=30, budget=200_000),
 }
 
 # RQ5 qubit ladder. n=12 statevector TRAINING dominates the whole run (tens of minutes
 # per model), so it is opt-in via HLQ_RQ5_MAX_N; the default stops at 10.
 _RQ5_MAX_N = int(os.environ.get("HLQ_RQ5_MAX_N", "10"))
+# RQ5 trains n x observable x seed models serially; at 8 seeds that is 64 models. Cap the
+# seed count so RQ5 stays inside a session even under the 8-seed presets (override with
+# HLQ_RQ5_MAX_SEEDS). The concentration TREND is a diagnostic, not a head-to-head test,
+# so 5 seeds is ample.
+_RQ5_MAX_SEEDS = int(os.environ.get("HLQ_RQ5_MAX_SEEDS", "5"))
+# RQ4 qubit sweep for the defense re-evaluation. Default n=4 (density-matrix depolarizing
+# is O(4^n)); set e.g. HLQ_RQ4_NS="4,6" to test scaling across qubit count.
+_RQ4_NS = [int(x) for x in os.environ.get("HLQ_RQ4_NS", "4").split(",")]
 
 # Principled defaults held fixed while one axis varies (plan Sec. 4.1/5).
 DEFAULT_N, DEFAULT_L, DEFAULT_ENC, DEFAULT_OBS = 8, 5, "angle", "local_z"
@@ -277,22 +289,25 @@ def rq4(P, jobs):
     # which dominates cost, so RQ4 runs at n=4 (256-dim) -- ~16x faster than n=6 -- with a
     # reduced image count and a lighter attack budget. The mechanism (margin collapse ->
     # gradient-free robustness) is qubit-count-independent; RQ5 handles the n sweep.
-    n_def = min(DEFAULT_N, 4)
+    ns = [min(DEFAULT_N, n) for n in _RQ4_NS]
     n_img = max(8, P["n_images"] // 3)
     def4 = dict(iterations=min(P["iterations"], 15),
                 total_budget=min(P["budget"], 40_000))
-    clfs = [_clf(s, n_qubits=n_def) for s in P["seeds"]]
+    clfs = [_clf(s, n_qubits=n) for s in P["seeds"] for n in ns]
     warmup_models(clfs)
-    tasks = [dict(clf_cfg=_clf(s, n_qubits=n_def), def_cfg=d,
+    tasks = [dict(clf_cfg=_clf(s, n_qubits=n), def_cfg=d,
                   atk_cfg=_atk(a, s, P, **def4), n_images=n_img)
-             for s in P["seeds"] for d in defenses for a in attacks]
+             for s in P["seeds"] for n in ns for d in defenses for a in attacks]
     cells = _run_all(jobs, tasks)
-    g = _group(cells, lambda c: (c["defense"]["name"], c["attack"]["name"]))
-    return {"cells": cells, "n_qubits": n_def,
-            "aggregated": {f"{k[0]}|{k[1]}": {m: _agg(v, m) for m in METRICS}
-                           for k, v in g.items()},
-            "note": "n capped for the density-matrix (default.mixed) noise defense; "
-                    "attacked-image count reduced for these O(4^n) cells."}
+    # key includes n only when more than one is swept, so single-n stays back-compatible
+    def _k(c):
+        base = f"{c['defense']['name']}|{c['attack']['name']}"
+        return base + (f"|n={c['classifier']['n_qubits']}" if len(ns) > 1 else "")
+    g = _group(cells, _k)
+    return {"cells": cells, "n_qubits": ns,
+            "aggregated": {k: {m: _agg(v, m) for m in METRICS} for k, v in g.items()},
+            "note": "depolarizing uses density-matrix (default.mixed, O(4^n)); n and "
+                    "image count kept small. Set HLQ_RQ4_NS to sweep qubit count."}
 
 
 # --------------------------------------------------------------------------- #
@@ -301,6 +316,8 @@ def rq4(P, jobs):
 def rq5(P, jobs):
     ns = [n for n in (4, 6, 8, 10, 12) if n <= _RQ5_MAX_N]     # n=12 opt-in (see top)
     obs = ["local_z", "global_z"]
+    seeds = tuple(P["seeds"])[:_RQ5_MAX_SEEDS]                 # cap: training-bound (see top)
+    P = {**P, "seeds": seeds}
     n_img = max(8, P["n_images"] // 4)
 
     # Training the large-n models is the cost; fewer epochs still exhibit the
