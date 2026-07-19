@@ -134,7 +134,13 @@ PRESET = "kaggle8"         # 8 seeds. Use "kaggle" (3 seeds) for a faster first 
 JOBS   = 4                 # parallel cells; set to the session's core count
 RUN1   = ["rq1", "rq3", "rq4", "rq2"]     # rq2 last: its allocation sweep is the slowest
 RUN2   = ["rq5"]
-RQS    = RUN1              # <- switch to RUN2 for the second session
+RUN3   = ["rq2"]           # finish RQ2 only (see HLQ_RQ2_PARTS below)
+RQS    = RUN1              # <- switch to RUN2 / RUN3 for later sessions
+
+# RQ2 splits into three independent sweeps, so an interrupted run can be finished
+# without redoing the completed parts. For RUN3, select just what is missing, e.g.:
+#   import os; os.environ["HLQ_RQ2_PARTS"] = "m1m2"        # the interior-optimum sweep
+#   import os; os.environ["HLQ_RQ2_PARTS"] = "m1m2,alloc"  # both remaining sweeps
 
 # RQ4 across qubit count (tests Theorem 4's exponential scaling): os.environ["HLQ_RQ4_NS"]="4,6"
 # RQ5 n=12 tier (tens of min/model training):                     os.environ["HLQ_RQ5_MAX_N"]="12"

@@ -201,60 +201,73 @@ def rq1(P, jobs):
 # RQ2: query/shot economics -- budget curve, probe-allocation sweep, M1/M2 split
 # --------------------------------------------------------------------------- #
 def rq2(P, jobs):
-    out = {}
+    """RQ2 has three independent sweeps; HLQ_RQ2_PARTS selects which to run.
+
+    They are separable, so an interrupted run can be finished by re-running only the
+    missing part (e.g. HLQ_RQ2_PARTS="m1m2") instead of redoing hours of completed work.
+    """
+    parts = set(os.environ.get("HLQ_RQ2_PARTS", "budget,alloc,m1m2").split(","))
+    out = {"parts_run": sorted(parts)}
     clfs = [_clf(s) for s in P["seeds"]]
     warmup_models(clfs)
 
     # (a) budget curve: perturbation vs total measurement budget T
     budgets = [P["budget"] // 8, P["budget"] // 4, P["budget"] // 2, P["budget"],
                P["budget"] * 2]
+    if "budget" not in parts:
+        budgets = []
     tasks = [dict(clf_cfg=_clf(s), def_cfg=DefenseConfig("none"),
                   atk_cfg=_atk("calibrated_hsja", s, P, total_budget=T),
                   n_images=P["n_images"])
              for s in P["seeds"] for T in budgets]
-    cells = _run_all(jobs, tasks)
-    g = _group(cells, lambda c: c["attack"]["total_budget"])
-    agg = _summarize(g)
-    out["budget_curve"] = {
-        "budgets": budgets, "aggregated": agg,
-        "curve": budget_curve([{"total_budget": int(k),
-                                "median_perturbation": v["median_perturbation"]["mean"]}
-                               for k, v in agg.items()]),
-        "cells": cells,
-    }
+    if budgets:
+        cells = _run_all(jobs, tasks)
+        g = _group(cells, lambda c: c["attack"]["total_budget"])
+        agg = _summarize(g)
+        out["budget_curve"] = {
+            "budgets": budgets, "aggregated": agg,
+            "curve": budget_curve([{"total_budget": int(k),
+                                    "median_perturbation": v["median_perturbation"]["mean"]}
+                                   for k, v in agg.items()]),
+            "cells": cells,
+        }
 
-    # (b) allocation sweep: perturbation vs FORCED probe shots S_probe at fixed T
-    #     (tests H2's interior optimum against the plateau the theory predicts)
-    s_grid = [1, 2, 4, 8, 16, 32, 64, 128, 256]
-    tasks = [dict(clf_cfg=_clf(s), def_cfg=DefenseConfig("none"),
-                  atk_cfg=_atk("calibrated_hsja", s, P), n_images=P["n_images"],
-                  force_probe_shots=sp)
-             for s in P["seeds"] for sp in s_grid]
-    cells = _run_all(jobs, tasks)
-    g = _group(cells, lambda c: c["force_probe_shots"])
-    agg = _summarize(g)
-    xs = sorted(g.keys())
-    ys = [agg[x]["median_perturbation"]["mean"] for x in xs]
-    out["allocation_sweep"] = {
-        "probe_shots": xs, "median_perturbation": ys, "aggregated": agg,
-        "interior_optimum": find_interior_optimum(xs, ys), "cells": cells,
-    }
+    # (b) allocation sweep: perturbation vs FORCED probe shots S_probe at fixed T.
+    #     Prop 3 proves the SNR objective is monotone in S, so the optimum should sit at
+    #     the smallest shots (a boundary optimum / plateau), not an interior one.
+    if "alloc" in parts:
+        s_grid = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+        tasks = [dict(clf_cfg=_clf(s), def_cfg=DefenseConfig("none"),
+                      atk_cfg=_atk("calibrated_hsja", s, P), n_images=P["n_images"],
+                      force_probe_shots=sp)
+                 for s in P["seeds"] for sp in s_grid]
+        cells = _run_all(jobs, tasks)
+        g = _group(cells, lambda c: c["force_probe_shots"])
+        agg = _summarize(g)
+        xs = sorted(g.keys())
+        ys = [agg[x]["median_perturbation"]["mean"] for x in xs]
+        out["allocation_sweep"] = {
+            "probe_shots": xs, "median_perturbation": ys, "aggregated": agg,
+            "interior_optimum": find_interior_optimum(xs, ys), "cells": cells,
+        }
 
-    # (c) M1/M2 split: fraction of the per-iteration budget given to normal estimation
-    fracs = [0.1, 0.25, 0.5, 0.75, 0.9]
-    tasks = [dict(clf_cfg=_clf(s), def_cfg=DefenseConfig("none"),
-                  atk_cfg=_atk("calibrated_hsja", s, P, grad_budget_frac=fr),
-                  n_images=P["n_images"])
-             for s in P["seeds"] for fr in fracs]
-    cells = _run_all(jobs, tasks)
-    g = _group(cells, lambda c: c["attack"]["grad_budget_frac"])
-    agg = _summarize(g)
-    xs = sorted(g.keys())
-    ys = [agg[x]["median_perturbation"]["mean"] for x in xs]
-    out["m1_m2_split"] = {
-        "grad_budget_frac": xs, "median_perturbation": ys, "aggregated": agg,
-        "interior_optimum": find_interior_optimum(xs, ys), "cells": cells,
-    }
+    # (c) M1/M2 split: fraction of the per-iteration budget given to normal estimation.
+    #     Prop 3(b) predicts the genuine interior optimum lives HERE.
+    if "m1m2" in parts:
+        fracs = [0.1, 0.25, 0.5, 0.75, 0.9]
+        tasks = [dict(clf_cfg=_clf(s), def_cfg=DefenseConfig("none"),
+                      atk_cfg=_atk("calibrated_hsja", s, P, grad_budget_frac=fr),
+                      n_images=P["n_images"])
+                 for s in P["seeds"] for fr in fracs]
+        cells = _run_all(jobs, tasks)
+        g = _group(cells, lambda c: c["attack"]["grad_budget_frac"])
+        agg = _summarize(g)
+        xs = sorted(g.keys())
+        ys = [agg[x]["median_perturbation"]["mean"] for x in xs]
+        out["m1_m2_split"] = {
+            "grad_budget_frac": xs, "median_perturbation": ys, "aggregated": agg,
+            "interior_optimum": find_interior_optimum(xs, ys), "cells": cells,
+        }
     return out
 
 
