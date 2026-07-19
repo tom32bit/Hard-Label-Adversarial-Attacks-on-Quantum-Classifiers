@@ -24,7 +24,8 @@ MODULES = [
     "hlq/defenses/__init__.py", "hlq/defenses/noise.py",
     "hlq/defenses/randomized_encoding.py", "hlq/runner.py",
     "experiments/run_sanity.py", "experiments/driver.py", "experiments/make_figures.py",
-    "experiments/significance.py",
+    "experiments/significance.py", "experiments/merge_rq2.py",
+    "experiments/salvage_rq2.py",
 ]
 
 
@@ -119,39 +120,72 @@ print("\\nT1-T4 trust gate:", "PASS" if s["_summary"]["trust_gate_T1_T4"] else "
            "| RQ3 | Does Born-rule calibration beat a constant-noise treatment (PopSkipJump)? |\n"
            "| RQ4 | Do the quantum-noise / randomized-encoding defenses survive a *gradient-free* attacker? |\n"
            "| RQ5 | Is apparent robustness really exponential concentration? |\n\n"
+           "**This notebook resumes.** The first cell clones the repo's already-computed "
+           "`results/*.json`, and the driver skips any RQ whose result file exists — so "
+           "*Run All* executes only the work that is still outstanding, then rebuilds the "
+           "figures and significance tests over the complete merged set. Set "
+           "`FETCH_PREVIOUS = False` to recompute everything from scratch.\n\n"
            "`smoke` proves the pipeline; `medium` gives real trends; `full` is the "
            "heavier-statistics scope from the plan (250 images/cell, 8 seeds)."),
-        code('''# PUBLICATION-GRADE STATISTICS (8 seeds). Because the head-to-head blocks and the
-# training-heavy RQ5 don't both fit one 12h CPU session, run this in TWO sessions:
-#
-#   RUN 1 (head-to-head, ~8-9h):  RQS = RUN1   (rq1/rq3/rq4/rq2 at 8 seeds)
-#   RUN 2 (concentration, ~4h):   RQS = RUN2   (rq5, self-capped to 5 seeds)
-#
-# Each run is self-contained and downloads its own results zip (last cell). Merge both
-# results/ folders locally and regenerate figures. Every cell is CHECKPOINTED, so a
-# timeout inside a session loses nothing and re-running resumes.
-PRESET = "kaggle8"         # 8 seeds. Use "kaggle" (3 seeds) for a faster first pass.
-JOBS   = 4                 # parallel cells; set to the session's core count
-RUN1   = ["rq1", "rq3", "rq4", "rq2"]     # rq2 last: its allocation sweep is the slowest
-RUN2   = ["rq5"]
-RUN3   = ["rq2"]           # finish RQ2 only (see HLQ_RQ2_PARTS below)
-RQS    = RUN1              # <- switch to RUN2 / RUN3 for later sessions
+        code('''# ---------------------------------------------------------------------------
+# RESUME: pull the already-computed results from the repo, so this session runs
+# ONLY the work that is still missing. The driver skips any RQ whose
+# results/<rq>.json already exists, so seeding that folder is all it takes.
+# ---------------------------------------------------------------------------
+REPO  = "https://github.com/tom32bit/Hard-Label-Adversarial-Attacks-on-Quantum-Classifiers.git"
+FETCH_PREVIOUS = True          # set False to compute everything from scratch
+RECOMPUTE      = ["rq2"]       # force these to re-run (their result file is removed)
 
-# RQ2 splits into three independent sweeps, so an interrupted run can be finished
-# without redoing the completed parts. For RUN3, select just what is missing, e.g.:
-#   import os; os.environ["HLQ_RQ2_PARTS"] = "m1m2"        # the interior-optimum sweep
-#   import os; os.environ["HLQ_RQ2_PARTS"] = "m1m2,alloc"  # both remaining sweeps
+import glob, os, shutil, subprocess, sys
+os.makedirs("results", exist_ok=True)
+if FETCH_PREVIOUS:
+    shutil.rmtree("_prev", ignore_errors=True)
+    r = subprocess.run(["git", "clone", "--depth", "1", REPO, "_prev"],
+                       capture_output=True, text=True)
+    if r.returncode == 0:
+        for f in glob.glob("_prev/results/*.json"):
+            shutil.copy(f, "results/")
+        print("seeded results/ from repo:", sorted(os.listdir("results")))
+    else:
+        print("clone failed (no Internet?) -- will compute from scratch\\n", r.stderr[-400:])
 
-# RQ4 across qubit count (tests Theorem 4's exponential scaling): os.environ["HLQ_RQ4_NS"]="4,6"
-# RQ5 n=12 tier (tens of min/model training):                     os.environ["HLQ_RQ5_MAX_N"]="12"
+for rq in RECOMPUTE:                     # remove so the driver recomputes them
+    p = f"results/{rq}.json"
+    if os.path.exists(p):
+        os.remove(p)
+        print("will recompute:", rq)
+
+present = sorted(f[:-5] for f in os.listdir("results") if f.endswith(".json"))
+print("\\nalready done (will be skipped):", present)
+'''),
+        code('''# ---------------------------------------------------------------------------
+# Run whatever is still missing. Everything already present is skipped, so with the
+# repo seeded this executes only the outstanding work (currently: RQ2's m1m2 sweep).
+# ---------------------------------------------------------------------------
+PRESET = "kaggle8"        # 8 seeds ("kaggle" = 3 seeds for a faster pass)
+JOBS   = 4                # parallel cells; set to the session's core count
+
+# RQ2 is three independent sweeps -- run only the ones still missing.
+os.environ["HLQ_RQ2_PARTS"] = "m1m2"      # "m1m2,alloc" to also finish the allocation sweep
+# os.environ["HLQ_RQ4_NS"]    = "4,6"     # RQ4 across qubit count (Theorem 4 scaling)
+# os.environ["HLQ_RQ5_MAX_N"] = "12"      # RQ5 n=12 tier (tens of min/model training)
+
 ALL_RQS = ["rq1", "rq2", "rq3", "rq4", "rq5", "ablation_encoding",
            "ablation_depth", "ablation_dataset"]
+RQS = ALL_RQS             # the driver skips the ones already present
 
-import subprocess, sys
 for rq in RQS:
     print(f"\\n########## {rq} ##########", flush=True)
     subprocess.run([sys.executable, "experiments/driver.py", "--rq", rq,
                     "--preset", PRESET, "--jobs", str(JOBS)], check=False)
+'''),
+        code('''# Merge the freshly computed RQ2 sweep with the salvaged 8-seed budget/allocation
+# curves, so results/rq2.json ends up with the best available version of every panel.
+frag = "results/rq2_partial_8seed.json"
+if os.path.exists("results/rq2.json") and os.path.exists(frag):
+    subprocess.run([sys.executable, "experiments/merge_rq2.py",
+                    "--inputs", "results/rq2.json", frag,
+                    "--out", "results/rq2.json"], check=False)
 '''),
         md("## 5. Figures\n\nResearch figures rendered from the results JSON: a validated "
            "colorblind-safe categorical palette in fixed order, always with a second "
