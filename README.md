@@ -198,10 +198,14 @@ The chance line is the whole story: the noise defense's apparent robustness is i
 accuracy falling *below* chance, exactly the confound RQ5 guards against; the randomized
 encoding is the real thing.
 
-**RQ5 — concentration vs robustness.** `Var[f_θ(x)]` decays with qubit count (local
-observable fit `R² = 0.96`) while attack success falls (0.73 → 0.40 from n=4 to n=10) and
-perturbation grows — apparent robustness that tracks concentration, reported alongside
-accuracy-above-chance so it cannot be mistaken for a defense.
+**RQ5 — concentration vs robustness** (5 seeds, n = 4→10). `Var[f_θ(x)]` decays
+exponentially with qubit count — local `Z₀`: `R² = 0.991`, decay `b = 0.065`,
+**p = 4.6e-3**; global `Z^⊗n`: `R² = 0.85`, `p = 0.079` (not significant). Over the same
+range attack success falls (0.68 → 0.42 global / 0.51 local) and median perturbation
+grows (0.69 → 0.93/0.96), **while clean accuracy stays 0.87–0.91** — i.e. this is
+genuine robustness-with-scale, *not* the concentration collapse the guardrail is there to
+catch (contrast the depolarizing defense in RQ4, where accuracy fell to 0.48). Reporting
+robustness against accuracy-above-chance is what separates the two.
 
 All of RQ4/RQ5 were produced by the Kaggle notebook in **~2.2 h** (well inside the 12 h
 limit) on the `kaggle` preset, with the checkpointing described below.

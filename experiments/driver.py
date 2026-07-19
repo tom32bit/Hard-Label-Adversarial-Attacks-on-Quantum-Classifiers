@@ -340,7 +340,10 @@ def rq5(P, jobs):
         fits[o] = {"n_qubits": xs, "var_f": var,
                    "exponential_fit": fit_exponential_concentration(xs, var)}
     return {"cells": cells, "aggregated": agg, "concentration_fits": fits,
-            "n_qubits": ns, "observables": obs}
+            "n_qubits": ns, "observables": obs,
+            # report the seeds ACTUALLY used (RQ5 caps them); main() records this in
+            # _meta so the stored metadata never overstates the statistics.
+            "seeds_used": list(seeds)}
 
 
 # --------------------------------------------------------------------------- #
@@ -429,8 +432,12 @@ def main():
         print(f"\n=== {name} (preset={args.preset}, images={P['n_images']}, "
               f"seeds={len(P['seeds'])}) ===", flush=True)
         res = RQS[name](P, args.jobs)
+        # an RQ may use fewer seeds than the preset offers (RQ5 caps them); record what
+        # was actually used so the metadata never overstates the statistics
+        seeds_used = res.get("seeds_used", list(P["seeds"]))
         res["_meta"] = {"rq": name, "preset": args.preset,
-                        "params": {**P, "seeds": list(P["seeds"])},
+                        "params": {**P, "seeds": list(seeds_used)},
+                        "preset_seeds": list(P["seeds"]),
                         "runtime_s": round(time.time() - t0, 1)}
         save_json(res, path)
         print(f"=== {name} done in {res['_meta']['runtime_s']}s -> {path}", flush=True)
