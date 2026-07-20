@@ -19,3 +19,6 @@ results/checkpoints/
 # (exported result dirs, logs, zips, duplicated source).
 notebooks/*
 !notebooks/*.ipynb
+
+# Manuscript kept local, not published
+paper/
