@@ -6,8 +6,8 @@ a **shot-budget-aware, Born-rule-calibrated decision-based (hard-label) attack**
 variational quantum classifiers, its baselines, the first gradient-free evaluation of
 two published quantum defenses, and a concentration-vs-robustness guardrail.
 
-Target venue: *Quantum Machine Intelligence*. Classical simulation, 4–12 qubits,
-PennyLane + PyTorch. **No GPU or quantum hardware required.**
+Classical simulation, 4–12 qubits, PennyLane + PyTorch.
+**No GPU or quantum hardware required.**
 
 ---
 
@@ -67,7 +67,7 @@ hlq/                        the library
     hsja_fixed.py           naive fixed-shot port (and the deterministic anchor)
     popskipjump.py          constant-flip-rate baseline
     pgd_whitebox.py         white-box reference (strongest attacker)
-    momentum.py             momentum-based quantum attack (QMI precedent [6])
+    momentum.py             momentum-based quantum attack (precedent baseline [6])
     transfer.py             classical-surrogate transfer
   defenses/
     noise.py                depolarizing defense (true density-matrix simulation)
