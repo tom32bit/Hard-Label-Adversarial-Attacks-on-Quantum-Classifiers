@@ -177,12 +177,16 @@ Two effects worth naming:
   perturbation tightens 0.952 -> 0.756). More budget buys finer boundary resolution `τ`,
   so the returned point sits closer to the true boundary and is inherently more marginal.
 
-**RQ2 — query/shot economics.** A weak interior optimum appears in the probe-shot
-allocation (perturbation dips at `S_probe ≈ 2`) and a clearer one in the M1/M2 split
-(best around 0.75 of the per-iteration budget to the normal estimate), partially
-supporting H2. **Ablations:** re-uploading is the most attackable encoding (0.74 success)
-and amplitude the least (0.24); MNIST 0-vs-1 (near-separable, clean acc 0.995) is easier
-to attack than 3-vs-5 or Fashion-MNIST.
+**RQ2 — query/shot economics** (8 seeds; the paper's "quantum twist"). Exactly as
+Prop 3 predicts: the **probe-shot allocation has no interior optimum** — perturbation is
+minimised at the smallest shots (`S_probe = 1`, monotone up to 0.83 at `S = 256`), a
+boundary optimum (H2 is *false* for that sub-problem, a clean predicted negative result);
+while the genuine interior optimum lives in the **M1/M2 split**, minimised at a **50/50**
+division between boundary search and gradient estimation (0.862 → **0.754** → 0.763
+across frac = 0.1→0.9; gain 0.108 vs the worst edge). The budget curve is monotone and
+tight at 8 seeds (0.958 → 0.725 across T = 10k→160k). **Ablations:** re-uploading is the
+most attackable encoding (0.74 success) and amplitude the least (0.24); MNIST 0-vs-1
+(near-separable, clean acc 0.995) is easier to attack than 3-vs-5 or Fashion-MNIST.
 
 **RQ4 — first gradient-free test of two published defenses** (n=4, 3 seeds; the
 calibrated hard-label attacker never computes a gradient). Both sides of H4 appear, one
